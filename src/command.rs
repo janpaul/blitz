@@ -220,17 +220,17 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     match parts[0].to_uppercase().as_str() {
         "SET" => handle_set(writer, &parts),
         "GET" => handle_get(writer, &parts),
-        "LIST" => handle_list(writer, &parts),
+        "LIST" | "LS" => handle_list(writer, &parts),
         "EXISTS" => handle_exists(writer, &parts),
-        "RENAME" => handle_rename(writer, &parts),
+        "RENAME" | "REN" | "MOVE" => handle_rename(writer, &parts),
         "TYPE" => handle_type(writer, &parts),
         "MGET" => handle_mget(writer, &parts),
         "MSET" => handle_mset(writer, &parts),
         "INCR" => handle_incr(writer, &parts),
         "DECR" => handle_decr(writer, &parts),
         "ADD" => handle_add(writer, &parts),
-        "SUB" => handle_sub(writer, &parts),
-        "EXPIRE" => handle_expire(writer, &parts),
+        "SUB" | "SUBTRACT" => handle_sub(writer, &parts),
+        "EXPIRE" | "EXP" => handle_expire(writer, &parts),
         "TTL" => handle_ttl(writer, &parts),
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
@@ -255,11 +255,14 @@ fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "DEL <key>\r\n");
     write_response(writer, "EXISTS <key>\r\n");
     write_response(writer, "TYPE <key>\r\n");
+    write_response(writer, "REN <old> <new>\r\n");
+    write_response(writer, "MOVE <old> <new>\r\n");
     write_response(writer, "RENAME <old> <new>\r\n");
     write_response(writer, "INCR <key>\r\n");
     write_response(writer, "DECR <key>\r\n");
     write_response(writer, "ADD <key> <number>\r\n");
     write_response(writer, "SUB <key> <number>\r\n");
+    write_response(writer, "SUBTRACT <key> <number>\r\n");
     write_response(writer, "EXPIRE <key> <seconds>\r\n");
     write_response(writer, "TTL <key>\r\n");
     write_response(writer, "MGET <key1> <key2> ... <keyn>\r\n");
@@ -268,6 +271,7 @@ fn handle_help<W: Write>(writer: &mut W) {
         "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n",
     );
     write_response(writer, "PING\r\n");
+    write_response(writer, "LS\r\n");
     write_response(writer, "LIST\r\n");
     write_response(writer, "CLEAR\r\n");
     write_response(writer, "QUIT\r\n");
