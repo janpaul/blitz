@@ -1,0 +1,81 @@
+use std::fs::{OpenOptions,File};
+use std::io::{BufWriter, BufReader, BufRead,Write,Seek,SeekFrom};
+use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
+use crate::storage;
+
+
+pub struct Journal {
+    writer: BufWriter<File>,
+}
+
+impl Journal {
+    fn new(path: &str) -> Self {
+        let file = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .unwrap();
+        Journal {
+            writer: BufWriter::new(file),
+        }
+    }
+
+    fn get_timestamp() -> u64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+    }
+
+    pub fn log_set(&mut self, key: &str, value: &str) {
+        writeln!(self.writer, "{} SET {} {}", Self::get_timestamp(), key, value).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_remove(&mut self, key: &str) {
+        writeln!(self.writer, "{} DEL {}", Self::get_timestamp(), key).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn clear_journal(&mut self) {
+        self.writer.get_mut().set_len(0).unwrap();
+        self.writer.get_mut().seek(SeekFrom::Start(0)).unwrap();
+        self.writer.flush().unwrap();
+    }
+}
+
+pub static JOURNAL: OnceLock<Mutex<Journal>> = OnceLock::new();
+
+pub fn init_journal(path: &str) {
+    JOURNAL.get_or_init(|| Mutex::new(Journal::new(path)));
+    replay_journal(path);
+}
+
+fn replay_journal(path: &str) {
+    let file = File::open(path);
+    if file.is_err() {
+        return; //
+    }
+
+    let reader = BufReader::new(file.unwrap());
+    for line in reader.lines() {
+        let line = line.unwrap();
+        let parts: Vec<&str> = line.splitn(4, ' ').collect();
+
+        match parts[1] {
+            "SET" if parts.len() == 4 => {
+                storage::set_internal(parts[2], parts[3])
+            }
+            "DEL" if parts.len() == 3 => {
+                if parts.len() < 3 {
+                    continue;
+                }
+                let _ = storage::remove_internal(parts[2]);
+            }
+            _ => {}
+        }
+    }
+}
+
+
