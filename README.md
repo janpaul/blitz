@@ -1,6 +1,7 @@
 # Blitz
 
-A fast, lightweight in-memory key-value store built in Rust. Inspired by Redis, but not a clone — Blitz is designed for ultra-low-latency use cases like game state on a LAN, with both TCP and UDP support (UDP coming soon).
+A fast, lightweight in-memory key-value store built in Rust. Inspired by Redis, but not a clone — Blitz is designed for
+ultra-low-latency use cases like game state on a LAN, with both TCP and UDP support (UDP coming soon).
 
 ## Features
 
@@ -82,12 +83,65 @@ QUIT
 
 ## Responses
 
-| Response | Meaning |
-|--------|---|
-| `OK`  | Command succeeded |
-| `BYE`  | Connection closing (after QUIT) |
-| `NIL`  | Key not found |
-| `NOK`  | Unknown or malformed command |
+| Response | Meaning                         |
+|----------|---------------------------------|
+| `OK`     | Command succeeded               |
+| `BYE`    | Connection closing (after QUIT) |
+| `NIL`    | Key not found                   |
+| `NOK`    | Unknown or malformed command    |
+
+## UDP Datagram Protocol
+
+Blitz exposes a binary UDP interface on port 6380, designed for ultra-low-latency use cases like game state on a LAN.
+Unlike the TCP interface, there is no connection overhead — just fire a packet and get a response.
+
+### Packet Format
+
+#### Request
+
+| Byte(s) | Field        | Description                             |
+|---------|--------------|-----------------------------------------|
+| 0       | Command      | 0x01 = GET, 0x02 = SET                  |
+| 1       | Key length   | Length of the key in bytes              |
+| 2..n    | Key          | UTF-8 key                               |
+| n+1     | Value length | Length of the value in bytes (SET only) |
+| n+2..   | Value        | UTF-8 value (SET only)                  |
+
+#### Response
+
+| Byte(s) | Field        | Description                       |
+|---------|--------------|-----------------------------------|
+| 0       | Status       | 0x00 = OK, 0x01 = NIL, 0x02 = NOK |
+| 1       | Value length | Length of the value in bytes      |
+| 1..n    | Value        | UTF-8 value (GET only)            |
+
+### Example (Python)
+
+```python
+import socket
+
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+addr = ("127.0.0.1", 6380)
+
+# SET player1.pos = "10,20"
+key = b"player1.pos"
+value = b"10,20"
+packet = bytes([0x02, len(key)]) + key + bytes([len(value)]) + value
+s.sendto(packet, addr)
+print(s.recvfrom(256))  # (b'\x00', ...)
+
+# GET player1.pos
+packet = bytes([0x01, len(key)]) + key
+s.sendto(packet, addr)
+data, _ = s.recvfrom(256)
+print(data[2:].decode())  # 10,20
+````
+
+### Notes
+
+- Maximum key size: 255 bytes
+- Maximum value size: 255 bytes
+- TCP and UDP share the same in-memory storage — a value written via UDP is immediately readable via TCP and vice versa.
 
 ## Project Status
 
