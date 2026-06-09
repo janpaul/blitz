@@ -236,7 +236,7 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         "DEL" => handle_delete(writer, &parts),
         "HELP" => handle_help(writer),
         "PING" => write_response(writer, "PONG\r\n"),
-        "QUIT" => {
+        "QUIT" | "BYE" => {
             write_response(writer, BYE);
             return true;
         }
@@ -271,4 +271,5 @@ fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "LIST\r\n");
     write_response(writer, "CLEAR\r\n");
     write_response(writer, "QUIT\r\n");
+    write_response(writer, "BYE\r\n");
 }

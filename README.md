@@ -52,6 +52,7 @@ nc 127.0.0.1 6379
 | `PING`                     | Health check, returns `PONG`                  |
 | `CLEAR`                    | Remove all keys from storage                  |
 | `QUIT`                     | Close the connection                          |
+| `BYE`                      | Close the connection                          |
 
 ### Examples
 
