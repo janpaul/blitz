@@ -32,6 +32,18 @@ fn handle_get<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 }
 
+fn handle_exists<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() < 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    if storage::exists(parts[1]) {
+        write_response(writer, "1\r\n");
+    } else {
+        write_response(writer, "0\r\n");
+    }
+}
+
 fn handle_list<W: Write>(writer: &mut W, parts: &[&str]) {
     if parts.len() != 1 {
         write_response(writer, NOK);
@@ -61,13 +73,67 @@ fn handle_delete<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 }
 
+fn handle_rename<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() < 3 {
+        write_response(writer, NOK);
+    }
+
+    if storage::rename(parts[1], parts[2]) {
+        write_response(writer, OK);
+    } else {
+        write_response(writer, format!("ERR no such key {}\r\n", parts[1]).as_str());
+    }
+}
+
+fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+    }
+
+    if storage::exists(parts[1]) {
+        write_response(writer, "string\r\n");
+    } else {
+        write_response(writer, NIL);
+    }
+}
+
 fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "SET <key> <value>\r\n");
     write_response(writer, "GET <key>\r\n");
     write_response(writer, "DEL <key>\r\n");
-    write_response(writer, "LIST");
-    write_response(writer, "CLEAR");
-    write_response(writer, "QUIT");
+    write_response(writer, "EXISTS <key>\r\n");
+    write_response(writer, "TYPE <key>\r\n");
+    write_response(writer, "RENAME <old> <new>\r\n");
+    write_response(writer, "MGET <key1> <key2> ... <keyn>\r\n");
+    write_response(writer, "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n");
+    write_response(writer, "PING\r\n");
+    write_response(writer, "LIST\r\n");
+    write_response(writer, "CLEAR\r\n");
+    write_response(writer, "QUIT\r\n");
+}
+
+fn handle_mget<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() < 2 {
+        write_response(writer, NOK);
+        return;
+    }
+
+    for key in &parts[1..] {
+        match storage::get(key) {
+            Some(value) => write_response(writer, &format!("{}\r\n", value)),
+            None => write_response(writer, NIL),
+        }
+    }
+}
+
+fn handle_mset<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() < 3 || parts[1..].len() % 2 != 0 {
+        write_response(writer, NOK);
+        return;
+    }
+    storage::mset(parts);
+    write_response(writer, OK);
+
 }
 
 pub fn handle_command<W:Write>(writer: &mut W, command: &str) -> bool {
@@ -81,9 +147,15 @@ pub fn handle_command<W:Write>(writer: &mut W, command: &str) -> bool {
         "SET" => handle_set(writer, &parts),
         "GET" => handle_get(writer, &parts),
         "LIST" => handle_list(writer, &parts),
+        "EXISTS" => handle_exists(writer, &parts),
+        "RENAME" => handle_rename(writer, &parts),
+        "TYPE" => handle_type(writer, &parts),
+        "MGET" => handle_mget(writer, &parts),
+        "MSET" => handle_mset(writer, &parts),
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
         "HELP" => handle_help(writer),
+        "PING" => write_response(writer,"PONG\r\n"),
         "QUIT" => {
             write_response(writer,BYE);
             return false

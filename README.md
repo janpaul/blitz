@@ -31,14 +31,21 @@ nc 127.0.0.1 6379
 
 ## Commands
 
-| Command | Description |
-|---|---|
-| `SET <key> <value>` | Store a value under a key |
-| `GET <key>` | Retrieve the value for a key |
-| `DEL <key>` | Delete a key and return its value |
-| `LIST` | List all keys currently in storage |
-| `CLEAR` | Remove all keys from storage |
-| `QUIT` | Close the connection |
+| Command                    | Description                                |
+|----------------------------|--------------------------------------------|
+| `SET <key> <value>`        | Store a value under a key                  |
+| `GET <key>`                | Retrieve the value for a key               |
+| `DEL <key>`                | Delete a key and return its value          |
+| `EXISTS <key>`             | Returns `1` if a key exists, otherwise `0` |
+| `TYPE <key>`               | Returns the type of the key                |
+| `RENAME <old> <new>`       | Renames key `old` to `new`                 |
+| `MGET <k1> <kn>`           | Get the values of the specified keys       |
+| `MSET <k1> <v1> <kn> <vn>` | Set the values of the specified keys       |
+| `RENAME <old> <new>`       | Renames key `old` to `new`                 |
+| `LIST`                     | List all keys currently in storage         |
+| `PING`                     | Health check, returns `PONG`               |
+| `CLEAR`                    | Remove all keys from storage               |
+| `QUIT`                     | Close the connection                       |
 
 ### Examples
 

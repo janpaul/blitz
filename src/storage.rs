@@ -1,4 +1,4 @@
-use crate::journal;
+use crate::{journal, storage};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -41,6 +41,11 @@ pub fn get(key: &str) -> Option<String> {
     map.get(key).cloned()
 }
 
+pub fn exists(key: &str) -> bool {
+    let map = get_storage().lock().unwrap();
+    map.contains_key(key)
+}
+
 pub fn remove_internal(key: &str) -> Option<String> {
     let mut map = get_storage().lock().unwrap();
     map.remove(key)
@@ -50,6 +55,34 @@ pub fn remove(key: &str) -> Option<String> {
     let value = remove_internal(key);
     if let Some(journal) = journal::JOURNAL.get() {
         journal.lock().unwrap().log_remove(key);
+    }
+    value
+}
+
+pub fn mset(parts: &[&str]) {
+    for pair in parts[1..].chunks(2) {
+        storage::set_internal(pair[0], pair[1]);
+    }
+    if let Some(journal) = journal::JOURNAL.get() {
+        let pairs: Vec<(&str, &str)> = parts[1..].chunks(2).map(|chunk| (chunk[0], chunk[1])).collect();
+        journal.lock().unwrap().log_mset(&pairs);
+    }
+}
+
+pub fn rename_internal(from: &str, to: &str)->bool {
+    match remove_internal(from) {
+        Some(value) => {
+            set_internal(to, &value);
+            true
+        }
+        None => false,
+    }
+}
+
+pub fn rename(from: &str, to: &str) -> bool {
+    let value = rename_internal(from, to);
+    if let Some(journal) = journal::JOURNAL.get() {
+        journal.lock().unwrap().log_rename(from, to);
     }
     value
 }

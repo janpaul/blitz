@@ -38,6 +38,17 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
+    pub fn log_rename(&mut self, from: &str, to:&str) {
+        writeln!(self.writer, "{} RENAME {} {}", Self::get_timestamp(), from, to).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_mset(&mut self, pairs: &[(&str, &str)]) {
+        let flat: Vec<&str> = pairs.iter().flat_map(|(k, v)| [*k, *v]).collect();
+        writeln!(self.writer, "{} MSET {}", Self::get_timestamp(), flat.join(" ")).unwrap();
+        self.writer.flush().unwrap();
+    }
+
     pub fn clear_journal(&mut self) {
         self.writer.get_mut().set_len(0).unwrap();
         self.writer.get_mut().seek(SeekFrom::Start(0)).unwrap();
@@ -63,15 +74,28 @@ fn replay_journal(path: &str) {
         let line = line.unwrap();
         let parts: Vec<&str> = line.splitn(4, ' ').collect();
 
+        if parts.len() < 3 {
+            continue;
+        }
+
         match parts[1] {
             "SET" if parts.len() == 4 => {
                 storage::set_internal(parts[2], parts[3])
             }
             "DEL" if parts.len() == 3 => {
-                if parts.len() < 3 {
-                    continue;
-                }
                 let _ = storage::remove_internal(parts[2]);
+            }
+            "RENAME" if parts.len() == 4 => {
+                let _ = storage::rename_internal(parts[2], parts[3]);
+            }
+            "MSET" if parts.len() >= 3 => {
+                let all: Vec<&str> = line.split(' ').collect();
+                // all = [timestamp, "MSET", key1, val1, key2, val2, ...]
+                for pair in all[2..].chunks(2) {
+                    if pair.len() == 2 {
+                        storage::set_internal(pair[0], pair[1]);
+                    }
+                }
             }
             _ => {}
         }
