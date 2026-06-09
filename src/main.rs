@@ -26,7 +26,7 @@ fn handle_client(stream: TcpStream) {
                 break;
             }
             Ok(_) => {
-                print!("Received: {}", line);
+                // print!("Received: {}", line);
                 if handle_command(&mut writer, &line) {
                     break;
                 }

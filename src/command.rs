@@ -238,7 +238,7 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         "PING" => write_response(writer, "PONG\r\n"),
         "QUIT" => {
             write_response(writer, BYE);
-            return false;
+            return true;
         }
         _ => {
             write_response(writer, NOK);
