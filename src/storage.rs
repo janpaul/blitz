@@ -137,19 +137,6 @@ pub fn add_internal(key: &str, increase: i64) -> Result<i64, &'static str> {
         }
     }
 }
-pub fn add_internal2(key: &str, increase: i64) -> Result<i64, &'static str> {
-    match get(key) {
-        None => Err("ERR key not found"),
-        Some(value) => match value.parse::<i64>() {
-            Err(_) => Err("ERR value is not an integer"),
-            Ok(num) => {
-                let new_value = num + increase;
-                set_internal(key, &new_value.to_string());
-                Ok(new_value)
-            }
-        },
-    }
-}
 
 pub fn increment(key: &str) -> Result<i64, &'static str> {
     let result = add_internal(key, 1);
@@ -184,9 +171,10 @@ pub fn subtract(key: &str, num: i64) -> Result<i64, &'static str> {
 }
 
 pub fn rename_internal(from: &str, to: &str) -> bool {
-    match remove_internal(from) {
-        Some(value) => {
-            set_internal(to, &value);
+    let mut map = get_storage().lock().unwrap();
+    match map.remove(from) {
+        Some(entry) => {
+            map.insert(to.to_string(), entry);
             true
         }
         None => false,
