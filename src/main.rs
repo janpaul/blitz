@@ -3,6 +3,8 @@ mod config;
 mod helpers;
 mod journal;
 mod storage;
+mod protocol;
+mod datagram;
 
 use command::handle_command;
 use config::Config;
@@ -44,6 +46,10 @@ fn main() {
     let listener = TcpListener::bind(config.address()).unwrap();
     init_journal(&*config.journal_path);
     println!("Blitz listening on {}:{}", config.host, config.port);
+
+    std::thread::spawn(|| {
+        datagram::start_server();
+    });
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
