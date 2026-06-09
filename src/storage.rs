@@ -1,7 +1,7 @@
 use crate::{helpers, journal, storage};
+use helpers::get_timestamp;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
-use helpers::get_timestamp;
 
 struct Entry {
     value: String,
@@ -47,7 +47,7 @@ pub fn set(key: &str, value: &str) {
     }
 }
 
-pub fn expire_interal(key:&str, seconds: u64) -> bool{
+pub fn expire_interal(key: &str, seconds: u64) -> bool {
     let mut map = get_storage().lock().unwrap();
     match map.get_mut(key) {
         Some(entry) => {
@@ -58,7 +58,7 @@ pub fn expire_interal(key:&str, seconds: u64) -> bool{
     true
 }
 
-pub fn expire(key:&str, seconds: u64) -> bool{
+pub fn expire(key: &str, seconds: u64) -> bool {
     expire_interal(key, seconds);
 
     if let Some(journal) = journal::JOURNAL.get() {
@@ -67,12 +67,10 @@ pub fn expire(key:&str, seconds: u64) -> bool{
     true
 }
 
-pub fn ttl(key:&str) -> Option<u64> {
+pub fn ttl(key: &str) -> Option<u64> {
     let map = get_storage().lock().unwrap();
     match map.get(key) {
-        Some(entry) => {
-            entry.expires_at
-        }
+        Some(entry) => entry.expires_at,
         None => None,
     }
 }
@@ -134,7 +132,7 @@ pub fn add_internal(key: &str, increase: i64) -> Result<i64, &'static str> {
                 entry.value = new_value.to_string(); // muteer in-place, expires_at blijft intact
                 Ok(new_value)
             }
-        }
+        },
     }
 }
 

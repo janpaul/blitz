@@ -61,7 +61,14 @@ impl Journal {
     }
 
     pub fn log_expire(&mut self, key: &str, seconds: u64) {
-        writeln!(self.writer, "{} EXPIRE {} {}", get_timestamp(), key, seconds).unwrap();
+        writeln!(
+            self.writer,
+            "{} EXPIRE {} {}",
+            get_timestamp(),
+            key,
+            seconds
+        )
+        .unwrap();
         self.writer.flush().unwrap();
     }
 

@@ -1,6 +1,6 @@
+use crate::helpers::get_timestamp;
 use crate::storage;
 use std::io::Write;
-use crate::helpers::get_timestamp;
 
 const NIL: &str = "nil\r\n";
 const OK: &str = "OK\r\n";
@@ -103,7 +103,6 @@ fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 }
 
-
 fn handle_mget<W: Write>(writer: &mut W, parts: &[&str]) {
     if parts.len() < 2 {
         write_response(writer, NOK);
@@ -192,8 +191,7 @@ fn handle_expire<W: Write>(writer: &mut W, parts: &[&str]) {
         } else {
             write_response(writer, format!("NOK no such key {}\r\n", parts[1]).as_str());
         }
-    }
-    else {
+    } else {
         write_response(writer, NOK);
     }
 }
