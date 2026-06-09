@@ -60,6 +60,11 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
+    pub fn log_expire(&mut self, key: &str, seconds: u64) {
+        writeln!(self.writer, "{} EXPIRE {} {}", get_timestamp(), key, seconds).unwrap();
+        self.writer.flush().unwrap();
+    }
+
     pub fn clear_journal(&mut self) {
         self.writer.get_mut().set_len(0).unwrap();
         self.writer.get_mut().seek(SeekFrom::Start(0)).unwrap();
@@ -128,6 +133,15 @@ fn replay_journal(path: &str) {
                         let _ = storage::add_internal(parts[2], -num);
                     }
                     Err(_) => {}
+                }
+            }
+            "EXPIRE" if parts.len() == 4 => {
+                let value = parts[2].parse::<u64>();
+                match value {
+                    Ok(seconds) => {
+                        let _ = storage::expire_interal(parts[2], seconds);
+                    }
+                    _ => {}
                 }
             }
             _ => {}

@@ -43,6 +43,8 @@ nc 127.0.0.1 6379
 | `DECR <key>`               | Decreases the value of the key                |
 | `ADD <key> <number>`       | Adds `number` to the value of the key         |
 | `SUB <key>`                | Substracts `number` from the value of the key |
+| `EXPIRE <key> <seconds>`   | The `key` expires in `seconds`                |
+| `TTL <key>`                | Gets the expiration of the key, in seconds    |
 | `MGET <k1> <kn>`           | Get the values of the specified keys          |
 | `MSET <k1> <v1> <kn> <vn>` | Set the values of the specified keys          |
 | `RENAME <old> <new>`       | Renames key `old` to `new`                    |
