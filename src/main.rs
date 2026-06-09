@@ -1,10 +1,10 @@
 mod command;
 mod config;
+mod datagram;
 mod helpers;
 mod journal;
-mod storage;
 mod protocol;
-mod datagram;
+mod storage;
 
 use command::handle_command;
 use config::Config;
