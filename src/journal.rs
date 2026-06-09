@@ -43,11 +43,11 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
-    pub fn log_increase(&mut self, key: &str) {
+    pub fn log_increment(&mut self, key: &str) {
         writeln!(self.writer, "{} INCR {}", Self::get_timestamp(), key).unwrap();
         self.writer.flush().unwrap();
     }
-    pub fn log_decrease(&mut self, key: &str) {
+    pub fn log_decrement(&mut self, key: &str) {
         writeln!(self.writer, "{} DECR {}", Self::get_timestamp(), key).unwrap();
         self.writer.flush().unwrap();
     }
@@ -117,16 +117,16 @@ fn replay_journal(path: &str) {
                 }
             }
             "INCR" if parts.len()==3 => {
-                storage::add_internal(parts[2], 1)
+                let _ = storage::add_internal(parts[2], 1);
             }
             "DECR" if parts.len()==3 => {
-                storage::add_internal(parts[2], -1)
+                let _= storage::add_internal(parts[2], -1);
             }
             "ADD" if parts.len() == 4 => {
                 let value = parts[3].parse::<i64>();
                 match value {
                     Ok(num) => {
-                        storage::add_internal(parts[2], num)
+                        let _ = storage::add_internal(parts[2], num);
                     }
                     Err(_) => {}
                 }
@@ -135,7 +135,7 @@ fn replay_journal(path: &str) {
                 let value = parts[3].parse::<i64>();
                 match value {
                     Ok(num) => {
-                        storage::add_internal(parts[2], -num)
+                        let _ =storage::add_internal(parts[2], -num);
                     }
                     Err(_) => {}
                 }

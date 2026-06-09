@@ -151,8 +151,10 @@ fn handle_incr<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
         return;
     }
-    storage::increase(parts[1]);
-    write_response(writer, OK);
+    match storage::increment(parts[1]) {
+        Ok(new_value) => write_response(writer, &format!("{}\r\n", new_value)),
+        Err(e) => write_response(writer, &format!("{}\r\n", e)),
+    }
 }
 
 fn handle_decr<W: Write>(writer: &mut W, parts: &[&str]) {
@@ -160,8 +162,10 @@ fn handle_decr<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
         return;
     }
-    storage::decrease(parts[1]);
-    write_response(writer, OK);
+    match storage::decrement(parts[1]) {
+        Ok(new_value) => write_response(writer, &format!("{}\r\n", new_value)),
+        Err(e) => write_response(writer, &format!("{}\r\n", e)),
+    }
 }
 
 fn handle_add<W: Write>(writer: &mut W, parts: &[&str]) {
@@ -170,7 +174,10 @@ fn handle_add<W: Write>(writer: &mut W, parts: &[&str]) {
         return;
     }
     if let Ok(num) = parts[2].parse::<i64>() {
-        storage::add(parts[1], num);
+        match storage::add(parts[1], num) {
+            Ok(new_value) => write_response(writer, &format!("{}\r\n", new_value)),
+            Err(e) => write_response(writer, &format!("{}\r\n", e)),
+        }
         write_response(writer, OK);
     } else {
         write_response(writer, NOK);
@@ -183,8 +190,10 @@ fn handle_sub<W: Write>(writer: &mut W, parts: &[&str]) {
         return;
     }
     if let Ok(num) = parts[2].parse::<i64>() {
-        storage::subtract(parts[1], num);
-        write_response(writer, OK);
+        match storage::subtract(parts[1], num) {
+            Ok(new_value) => write_response(writer, &format!("{}\r\n", new_value)),
+            Err(e) => write_response(writer, &format!("{}\r\n", e)),
+        }
     } else {
         write_response(writer, NOK);
     }

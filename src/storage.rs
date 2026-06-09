@@ -69,40 +69,50 @@ pub fn mset(parts: &[&str]) {
     }
 }
 
-pub fn add_internal(key: &str, increase: i64) {
-    if let Some(value) = get(key) {
-        if let Ok(num) = value.parse::<i64>() {
-            set_internal(key, &(num + increase).to_string());
+pub fn add_internal(key: &str, increase: i64) -> Result<i64, &'static str> {
+    match get(key) {
+        None => Err("ERR key not found"),
+        Some(value) => match value.parse::<i64>() {
+            Err(_) => Err("ERR value is not an integer"),
+            Ok(num) => {
+                let new_value = num + increase;
+                set_internal(key, &new_value.to_string());
+                Ok(new_value)
+            }
         }
     }
 }
 
-pub fn increase(key:&str) {
-    add_internal(key, 1);
+pub fn increment(key:&str) -> Result<i64, &'static str> {
+    let result = add_internal(key, 1);
     if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_increase(&key);
+        journal.lock().unwrap().log_increment(&key);
     }
+    result
 }
 
-pub fn decrease(key:&str) {
-    add_internal(key, -1);
+pub fn decrement(key:&str) -> Result<i64, &'static str>{
+    let result = add_internal(key, -1);
     if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_decrease(&key);
+        journal.lock().unwrap().log_decrement(&key);
     }
+    result
 }
 
-pub fn add(key: &str, num: i64) {
-    add_internal(key, num);
+pub fn add(key: &str, num: i64) -> Result<i64, &'static str>{
+    let result = add_internal(key, num);
     if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_add(key, num);
+        journal.lock().unwrap().log_add(&key,num);
     }
+    result
 }
 
-pub fn subtract(key: &str, num: i64) {
-    add_internal(key, -num);
+pub fn subtract(key: &str, num: i64)  -> Result<i64, &'static str>{
+    let result = add_internal(key, -num);
     if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_subtract(key, num);
+        journal.lock().unwrap().log_subtract(&key,num);
     }
+    result
 }
 
 pub fn rename_internal(from: &str, to: &str)->bool {
