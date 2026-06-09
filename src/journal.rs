@@ -43,9 +43,28 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
+    pub fn log_increase(&mut self, key: &str) {
+        writeln!(self.writer, "{} INCR {}", Self::get_timestamp(), key).unwrap();
+        self.writer.flush().unwrap();
+    }
+    pub fn log_decrease(&mut self, key: &str) {
+        writeln!(self.writer, "{} DECR {}", Self::get_timestamp(), key).unwrap();
+        self.writer.flush().unwrap();
+    }
+
     pub fn log_mset(&mut self, pairs: &[(&str, &str)]) {
         let flat: Vec<&str> = pairs.iter().flat_map(|(k, v)| [*k, *v]).collect();
         writeln!(self.writer, "{} MSET {}", Self::get_timestamp(), flat.join(" ")).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_add(&mut self, key: &str, value: i64) {
+        writeln!(self.writer, "{} ADD {} {}", Self::get_timestamp(), key, value).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_subtract(&mut self, key: &str, value: i64) {
+        writeln!(self.writer, "{} SUB {} {}", Self::get_timestamp(), key, value).unwrap();
         self.writer.flush().unwrap();
     }
 
@@ -95,6 +114,30 @@ fn replay_journal(path: &str) {
                     if pair.len() == 2 {
                         storage::set_internal(pair[0], pair[1]);
                     }
+                }
+            }
+            "INCR" if parts.len()==3 => {
+                storage::add_internal(parts[2], 1)
+            }
+            "DECR" if parts.len()==3 => {
+                storage::add_internal(parts[2], -1)
+            }
+            "ADD" if parts.len() == 4 => {
+                let value = parts[3].parse::<i64>();
+                match value {
+                    Ok(num) => {
+                        storage::add_internal(parts[2], num)
+                    }
+                    Err(_) => {}
+                }
+            }
+            "SUB" if parts.len() == 4 => {
+                let value = parts[3].parse::<i64>();
+                match value {
+                    Ok(num) => {
+                        storage::add_internal(parts[2], -num)
+                    }
+                    Err(_) => {}
                 }
             }
             _ => {}

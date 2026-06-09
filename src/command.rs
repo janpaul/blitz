@@ -91,7 +91,13 @@ fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 
     if storage::exists(parts[1]) {
-        write_response(writer, "string\r\n");
+        let value = storage::get(parts[1]).unwrap();
+        if value.parse::<i64>().is_ok() {
+            write_response(writer, "number\r\n");
+        }
+        else {
+            write_response(writer, "string\r\n");
+        }
     } else {
         write_response(writer, NIL);
     }
@@ -104,6 +110,10 @@ fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "EXISTS <key>\r\n");
     write_response(writer, "TYPE <key>\r\n");
     write_response(writer, "RENAME <old> <new>\r\n");
+    write_response(writer, "INCR <key>\r\n");
+    write_response(writer, "DECR <key>\r\n");
+    write_response(writer, "ADD <key> <number>\r\n");
+    write_response(writer, "SUB <key> <number>\r\n");
     write_response(writer, "MGET <key1> <key2> ... <keyn>\r\n");
     write_response(writer, "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n");
     write_response(writer, "PING\r\n");
@@ -136,6 +146,50 @@ fn handle_mset<W: Write>(writer: &mut W, parts: &[&str]) {
 
 }
 
+fn handle_incr<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    storage::increase(parts[1]);
+    write_response(writer, OK);
+}
+
+fn handle_decr<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    storage::decrease(parts[1]);
+    write_response(writer, OK);
+}
+
+fn handle_add<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    if let Ok(num) = parts[2].parse::<i64>() {
+        storage::add(parts[1], num);
+        write_response(writer, OK);
+    } else {
+        write_response(writer, NOK);
+    }
+}
+
+fn handle_sub<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    if let Ok(num) = parts[2].parse::<i64>() {
+        storage::subtract(parts[1], num);
+        write_response(writer, OK);
+    } else {
+        write_response(writer, NOK);
+    }
+}
+
 pub fn handle_command<W:Write>(writer: &mut W, command: &str) -> bool {
     let parts: Vec<&str> = command.trim().split_whitespace().collect();
 
@@ -152,6 +206,10 @@ pub fn handle_command<W:Write>(writer: &mut W, command: &str) -> bool {
         "TYPE" => handle_type(writer, &parts),
         "MGET" => handle_mget(writer, &parts),
         "MSET" => handle_mset(writer, &parts),
+        "INCR" => handle_incr(writer, &parts),
+        "DECR" => handle_decr(writer, &parts),
+        "ADD" => handle_add(writer, &parts),
+        "SUB" => handle_sub(writer, &parts),
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
         "HELP" => handle_help(writer),

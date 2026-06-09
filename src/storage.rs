@@ -69,6 +69,42 @@ pub fn mset(parts: &[&str]) {
     }
 }
 
+pub fn add_internal(key: &str, increase: i64) {
+    if let Some(value) = get(key) {
+        if let Ok(num) = value.parse::<i64>() {
+            set_internal(key, &(num + increase).to_string());
+        }
+    }
+}
+
+pub fn increase(key:&str) {
+    add_internal(key, 1);
+    if let Some(journal) = journal::JOURNAL.get() {
+        journal.lock().unwrap().log_increase(&key);
+    }
+}
+
+pub fn decrease(key:&str) {
+    add_internal(key, -1);
+    if let Some(journal) = journal::JOURNAL.get() {
+        journal.lock().unwrap().log_decrease(&key);
+    }
+}
+
+pub fn add(key: &str, num: i64) {
+    add_internal(key, num);
+    if let Some(journal) = journal::JOURNAL.get() {
+        journal.lock().unwrap().log_add(key, num);
+    }
+}
+
+pub fn subtract(key: &str, num: i64) {
+    add_internal(key, -num);
+    if let Some(journal) = journal::JOURNAL.get() {
+        journal.lock().unwrap().log_subtract(key, num);
+    }
+}
+
 pub fn rename_internal(from: &str, to: &str)->bool {
     match remove_internal(from) {
         Some(value) => {
