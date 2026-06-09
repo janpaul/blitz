@@ -1,10 +1,10 @@
 use crate::storage;
 use std::io::Write;
 
-const NIL:&str = "nil\r\n";
-const OK:&str = "OK\r\n";
-const NOK:&str = "NOK\r\n";
-const BYE:&str = "BYE\r\n";
+const NIL: &str = "nil\r\n";
+const OK: &str = "OK\r\n";
+const NOK: &str = "NOK\r\n";
+const BYE: &str = "BYE\r\n";
 
 fn write_response<W: Write>(writer: &mut W, response: &str) {
     writer.write_all(response.as_bytes()).unwrap();
@@ -67,7 +67,7 @@ fn handle_delete<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
     }
 
-    match  storage::remove(parts[1]) {
+    match storage::remove(parts[1]) {
         Some(key) => write_response(writer, &format!("{}\r\n", key)),
         None => write_response(writer, NIL),
     }
@@ -94,8 +94,7 @@ fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
         let value = storage::get(parts[1]).unwrap();
         if value.parse::<i64>().is_ok() {
             write_response(writer, "number\r\n");
-        }
-        else {
+        } else {
             write_response(writer, "string\r\n");
         }
     } else {
@@ -115,7 +114,10 @@ fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "ADD <key> <number>\r\n");
     write_response(writer, "SUB <key> <number>\r\n");
     write_response(writer, "MGET <key1> <key2> ... <keyn>\r\n");
-    write_response(writer, "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n");
+    write_response(
+        writer,
+        "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n",
+    );
     write_response(writer, "PING\r\n");
     write_response(writer, "LIST\r\n");
     write_response(writer, "CLEAR\r\n");
@@ -143,7 +145,6 @@ fn handle_mset<W: Write>(writer: &mut W, parts: &[&str]) {
     }
     storage::mset(parts);
     write_response(writer, OK);
-
 }
 
 fn handle_incr<W: Write>(writer: &mut W, parts: &[&str]) {
@@ -199,7 +200,7 @@ fn handle_sub<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 }
 
-pub fn handle_command<W:Write>(writer: &mut W, command: &str) -> bool {
+pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     let parts: Vec<&str> = command.trim().split_whitespace().collect();
 
     if parts.is_empty() {
@@ -222,11 +223,11 @@ pub fn handle_command<W:Write>(writer: &mut W, command: &str) -> bool {
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
         "HELP" => handle_help(writer),
-        "PING" => write_response(writer,"PONG\r\n"),
+        "PING" => write_response(writer, "PONG\r\n"),
         "QUIT" => {
-            write_response(writer,BYE);
-            return false
-        },
+            write_response(writer, BYE);
+            return false;
+        }
         _ => {
             write_response(writer, NOK);
             println!("Unknown command: {}", parts[0]);

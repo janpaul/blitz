@@ -1,9 +1,8 @@
-use std::fs::{OpenOptions,File};
-use std::io::{BufWriter, BufReader, BufRead,Write,Seek,SeekFrom};
+use crate::{helpers, storage};
+use helpers::get_timestamp;
+use std::fs::{File, OpenOptions};
+use std::io::{BufRead, BufReader, BufWriter, Seek, SeekFrom, Write};
 use std::sync::{Mutex, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
-use crate::storage;
-
 
 pub struct Journal {
     writer: BufWriter<File>,
@@ -21,50 +20,43 @@ impl Journal {
         }
     }
 
-    fn get_timestamp() -> u64 {
-        SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs()
-    }
-
     pub fn log_set(&mut self, key: &str, value: &str) {
-        writeln!(self.writer, "{} SET {} {}", Self::get_timestamp(), key, value).unwrap();
+        writeln!(self.writer, "{} SET {} {}", get_timestamp(), key, value).unwrap();
         self.writer.flush().unwrap();
     }
 
     pub fn log_remove(&mut self, key: &str) {
-        writeln!(self.writer, "{} DEL {}", Self::get_timestamp(), key).unwrap();
+        writeln!(self.writer, "{} DEL {}", get_timestamp(), key).unwrap();
         self.writer.flush().unwrap();
     }
 
-    pub fn log_rename(&mut self, from: &str, to:&str) {
-        writeln!(self.writer, "{} RENAME {} {}", Self::get_timestamp(), from, to).unwrap();
+    pub fn log_rename(&mut self, from: &str, to: &str) {
+        writeln!(self.writer, "{} RENAME {} {}", get_timestamp(), from, to).unwrap();
         self.writer.flush().unwrap();
     }
 
     pub fn log_increment(&mut self, key: &str) {
-        writeln!(self.writer, "{} INCR {}", Self::get_timestamp(), key).unwrap();
+        writeln!(self.writer, "{} INCR {}", get_timestamp(), key).unwrap();
         self.writer.flush().unwrap();
     }
     pub fn log_decrement(&mut self, key: &str) {
-        writeln!(self.writer, "{} DECR {}", Self::get_timestamp(), key).unwrap();
+        writeln!(self.writer, "{} DECR {}", get_timestamp(), key).unwrap();
         self.writer.flush().unwrap();
     }
 
     pub fn log_mset(&mut self, pairs: &[(&str, &str)]) {
         let flat: Vec<&str> = pairs.iter().flat_map(|(k, v)| [*k, *v]).collect();
-        writeln!(self.writer, "{} MSET {}", Self::get_timestamp(), flat.join(" ")).unwrap();
+        writeln!(self.writer, "{} MSET {}", get_timestamp(), flat.join(" ")).unwrap();
         self.writer.flush().unwrap();
     }
 
     pub fn log_add(&mut self, key: &str, value: i64) {
-        writeln!(self.writer, "{} ADD {} {}", Self::get_timestamp(), key, value).unwrap();
+        writeln!(self.writer, "{} ADD {} {}", get_timestamp(), key, value).unwrap();
         self.writer.flush().unwrap();
     }
 
     pub fn log_subtract(&mut self, key: &str, value: i64) {
-        writeln!(self.writer, "{} SUB {} {}", Self::get_timestamp(), key, value).unwrap();
+        writeln!(self.writer, "{} SUB {} {}", get_timestamp(), key, value).unwrap();
         self.writer.flush().unwrap();
     }
 
@@ -98,9 +90,7 @@ fn replay_journal(path: &str) {
         }
 
         match parts[1] {
-            "SET" if parts.len() == 4 => {
-                storage::set_internal(parts[2], parts[3])
-            }
+            "SET" if parts.len() == 4 => storage::set_internal(parts[2], parts[3]),
             "DEL" if parts.len() == 3 => {
                 let _ = storage::remove_internal(parts[2]);
             }
@@ -116,11 +106,11 @@ fn replay_journal(path: &str) {
                     }
                 }
             }
-            "INCR" if parts.len()==3 => {
+            "INCR" if parts.len() == 3 => {
                 let _ = storage::add_internal(parts[2], 1);
             }
-            "DECR" if parts.len()==3 => {
-                let _= storage::add_internal(parts[2], -1);
+            "DECR" if parts.len() == 3 => {
+                let _ = storage::add_internal(parts[2], -1);
             }
             "ADD" if parts.len() == 4 => {
                 let value = parts[3].parse::<i64>();
@@ -135,7 +125,7 @@ fn replay_journal(path: &str) {
                 let value = parts[3].parse::<i64>();
                 match value {
                     Ok(num) => {
-                        let _ =storage::add_internal(parts[2], -num);
+                        let _ = storage::add_internal(parts[2], -num);
                     }
                     Err(_) => {}
                 }
@@ -144,5 +134,3 @@ fn replay_journal(path: &str) {
         }
     }
 }
-
-

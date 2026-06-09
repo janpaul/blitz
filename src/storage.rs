@@ -1,8 +1,19 @@
-use crate::{journal, storage};
+use crate::{helpers, journal, storage};
+use helpers::get_timestamp;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
-pub type Storage = Arc<Mutex<HashMap<String, String>>>;
+struct Entry {
+    value: String,
+    expires_at: Option<u64>, // Unix timestamp, None = nooit
+}
+
+impl Entry {
+    fn new(value: String, expires_at: Option<u64>) -> Self {
+        Entry { value, expires_at }
+    }
+}
+type Storage = Arc<Mutex<HashMap<String, Entry>>>;
 
 static STORAGE: OnceLock<Storage> = OnceLock::new();
 
@@ -25,7 +36,7 @@ pub fn clear() {
 
 pub fn set_internal(key: &str, value: &str) {
     let mut map = get_storage().lock().unwrap();
-    map.insert(key.to_string(), value.to_string());
+    map.insert(key.to_string(), Entry::new(value.to_string(), None));
 }
 
 pub fn set(key: &str, value: &str) {
@@ -37,8 +48,19 @@ pub fn set(key: &str, value: &str) {
 }
 
 pub fn get(key: &str) -> Option<String> {
-    let map = get_storage().lock().unwrap();
-    map.get(key).cloned()
+    let mut map = get_storage().lock().unwrap();
+    match map.get(key) {
+        Some(entry) => {
+            if let Some(expires_at) = entry.expires_at {
+                if expires_at < get_timestamp() {
+                    map.remove(key);
+                    return None;
+                }
+            }
+            Some(entry.value.clone())
+        }
+        None => None,
+    }
 }
 
 pub fn exists(key: &str) -> bool {
@@ -48,9 +70,8 @@ pub fn exists(key: &str) -> bool {
 
 pub fn remove_internal(key: &str) -> Option<String> {
     let mut map = get_storage().lock().unwrap();
-    map.remove(key)
+    map.remove(key).map(|entry| entry.value)
 }
-
 pub fn remove(key: &str) -> Option<String> {
     let value = remove_internal(key);
     if let Some(journal) = journal::JOURNAL.get() {
@@ -64,7 +85,10 @@ pub fn mset(parts: &[&str]) {
         storage::set_internal(pair[0], pair[1]);
     }
     if let Some(journal) = journal::JOURNAL.get() {
-        let pairs: Vec<(&str, &str)> = parts[1..].chunks(2).map(|chunk| (chunk[0], chunk[1])).collect();
+        let pairs: Vec<(&str, &str)> = parts[1..]
+            .chunks(2)
+            .map(|chunk| (chunk[0], chunk[1]))
+            .collect();
         journal.lock().unwrap().log_mset(&pairs);
     }
 }
@@ -79,11 +103,11 @@ pub fn add_internal(key: &str, increase: i64) -> Result<i64, &'static str> {
                 set_internal(key, &new_value.to_string());
                 Ok(new_value)
             }
-        }
+        },
     }
 }
 
-pub fn increment(key:&str) -> Result<i64, &'static str> {
+pub fn increment(key: &str) -> Result<i64, &'static str> {
     let result = add_internal(key, 1);
     if let Some(journal) = journal::JOURNAL.get() {
         journal.lock().unwrap().log_increment(&key);
@@ -91,7 +115,7 @@ pub fn increment(key:&str) -> Result<i64, &'static str> {
     result
 }
 
-pub fn decrement(key:&str) -> Result<i64, &'static str>{
+pub fn decrement(key: &str) -> Result<i64, &'static str> {
     let result = add_internal(key, -1);
     if let Some(journal) = journal::JOURNAL.get() {
         journal.lock().unwrap().log_decrement(&key);
@@ -99,23 +123,23 @@ pub fn decrement(key:&str) -> Result<i64, &'static str>{
     result
 }
 
-pub fn add(key: &str, num: i64) -> Result<i64, &'static str>{
+pub fn add(key: &str, num: i64) -> Result<i64, &'static str> {
     let result = add_internal(key, num);
     if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_add(&key,num);
+        journal.lock().unwrap().log_add(&key, num);
     }
     result
 }
 
-pub fn subtract(key: &str, num: i64)  -> Result<i64, &'static str>{
+pub fn subtract(key: &str, num: i64) -> Result<i64, &'static str> {
     let result = add_internal(key, -num);
     if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_subtract(&key,num);
+        journal.lock().unwrap().log_subtract(&key, num);
     }
     result
 }
 
-pub fn rename_internal(from: &str, to: &str)->bool {
+pub fn rename_internal(from: &str, to: &str) -> bool {
     match remove_internal(from) {
         Some(value) => {
             set_internal(to, &value);
