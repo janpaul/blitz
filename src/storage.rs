@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 
 struct Entry {
     value: String,
-    expires_at: Option<u64>, // Unix timestamp, None = nooit
+    expires_at: Option<u64>, // Unix timestamp, None = never
 }
 
 impl Entry {
