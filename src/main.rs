@@ -3,7 +3,6 @@ mod config;
 mod datagram;
 mod helpers;
 mod journal;
-mod protocol;
 mod storage;
 
 use command::handle_command;
