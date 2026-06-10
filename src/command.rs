@@ -201,11 +201,60 @@ fn handle_ttl<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
         return;
     }
-
     match storage::ttl(parts[1]) {
         Some(ttl) => write_response(writer, &format!("{}\r\n", ttl - get_timestamp())),
         None => write_response(writer, NIL),
     }
+}
+
+fn handle_pushr<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() < 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    let value = parts[2..].join(" ");
+    storage::push_right(parts[1], &value);
+    write_response(writer, OK);
+}
+
+fn handle_pushl<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() < 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    let value = parts[2..].join(" ");
+    storage::push_left(parts[1], &value);
+    write_response(writer, OK);
+}
+
+fn handle_popr<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    match storage::pop_right(parts[1]) {
+        Some(value) => write_response(writer, &format!("{}\r\n", value)),
+        None => write_response(writer, NIL),
+    }
+}
+
+fn handle_popl<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    match storage::pop_left(parts[1]) {
+        Some(value) => write_response(writer, &format!("{}\r\n", value)),
+        None => write_response(writer, NIL),
+    }
+}
+
+fn handle_llen<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    write_response(writer, &format!("{}\r\n", storage::llen(parts[1])));
 }
 
 pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
@@ -216,6 +265,7 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     }
 
     match parts[0].to_uppercase().as_str() {
+        // key/value functions
         "SET" => handle_set(writer, &parts),
         "GET" => handle_get(writer, &parts),
         "LIST" | "LS" => handle_list(writer, &parts),
@@ -230,6 +280,13 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         "SUB" | "SUBTRACT" => handle_sub(writer, &parts),
         "EXPIRE" | "EXP" => handle_expire(writer, &parts),
         "TTL" => handle_ttl(writer, &parts),
+        // list functions
+        "PUSHR" => handle_pushr(writer, &parts),
+        "PUSHL" => handle_pushl(writer, &parts),
+        "POPL" => handle_popl(writer, &parts),
+        "POPR" => handle_popr(writer, &parts),
+        "LLEN" => handle_llen(writer, &parts),
+        // common functions
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
         "HELP" => handle_help(writer),
@@ -268,6 +325,11 @@ fn handle_help<W: Write>(writer: &mut W) {
         writer,
         "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n",
     );
+    write_response(writer, "PUSHR <key> <value>\r\n");
+    write_response(writer, "PUSHL <key> <value>\r\n");
+    write_response(writer, "POPR <key>\r\n");
+    write_response(writer, "POPL <key>\r\n");
+    write_response(writer, "LLEN <key>\r\n");
     write_response(writer, "PING\r\n");
     write_response(writer, "LS\r\n");
     write_response(writer, "LIST\r\n");

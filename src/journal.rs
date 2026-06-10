@@ -72,6 +72,25 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
+    pub fn log_pushr(&mut self, key: &str, value: &str) {
+        writeln!(self.writer, "{} PUSHR {} {}", get_timestamp(), key, value).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_pushl(&mut self, key: &str, value: &str) {
+        writeln!(self.writer, "{} PUSHL {} {}", get_timestamp(), key, value).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_popr(&mut self, key: &str) {
+        writeln!(self.writer, "{} POPR {}", get_timestamp(), key).unwrap();
+        self.writer.flush().unwrap();
+    }
+    pub fn log_popl(&mut self, key: &str) {
+        writeln!(self.writer, "{} POPL {}", get_timestamp(), key).unwrap();
+        self.writer.flush().unwrap();
+    }
+
     pub fn clear_journal(&mut self) {
         self.writer.get_mut().set_len(0).unwrap();
         self.writer.get_mut().seek(SeekFrom::Start(0)).unwrap();
@@ -150,6 +169,18 @@ fn replay_journal(path: &str) {
                     }
                     _ => {}
                 }
+            }
+            "PUSHR" if parts.len() == 4 => {
+                let _ = storage::push_right_internal(parts[2], parts[3]);
+            }
+            "PUSHL" if parts.len() == 4 => {
+                let _ = storage::push_left_internal(parts[2], parts[3]);
+            }
+            "POPR" if parts.len() == 3 => {
+                let _ = storage::pop_right_internal(parts[2]);
+            }
+            "POPL" if parts.len() == 3 => {
+                let _ = storage::pop_left_internal(parts[2]);
             }
             _ => {}
         }

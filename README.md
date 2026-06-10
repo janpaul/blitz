@@ -51,6 +51,11 @@ nc 127.0.0.1 6379
 | `MGET <k1> <kn>`             | Get the values of the specified keys          |
 | `MSET <k1> <v1> <kn> <vn>`   | Set the values of the specified keys          |
 | `RENAME <old> <new>`         | Renames key `old` to `new`                    |
+| `PUSHR <list> <value>`       | Push `value` to the right side of the `list`  |
+| `PUSHL <list> <value>`       | Push `value` to the left side of the `list`   |
+| `POPR <list>`                | Gets the value of the right side of the list  |
+| `POPL <list>`                | Gets the value of the left side of the list   |
+| `LLEN <list>`                | Gets the number of items in the list          |
 | `LS`                         | List all keys currently in storage            |
 | `LIST`                       | List all keys currently in storage            |
 | `PING`                       | Health check, returns `PONG`                  |
