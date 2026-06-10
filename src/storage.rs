@@ -26,9 +26,14 @@ fn get_list_storage() -> &'static ListStorage {
     LIST_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
 }
 
-pub fn get_keys() -> Vec<String> {
-    let map = get_value_storage().lock().unwrap();
-    map.keys().cloned().collect()
+pub fn get_keys() -> Vec<(String, &'static str)> {
+    let value_map = get_value_storage().lock().unwrap();
+    let list_map = get_list_storage().lock().unwrap();
+    value_map
+        .keys()
+        .map(|k| (k.clone(), "string"))
+        .chain(list_map.keys().map(|k| (k.clone(), "list")))
+        .collect()
 }
 
 pub fn clear() {
@@ -64,12 +69,13 @@ pub fn expire_interal(key: &str, seconds: u64) -> bool {
 }
 
 pub fn expire(key: &str, seconds: u64) -> bool {
-    expire_interal(key, seconds);
-
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_expire(key, seconds);
+    let value = expire_interal(key, seconds);
+    if value {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_expire(key, seconds);
+        }
     }
-    true
+    value
 }
 
 pub fn ttl(key: &str) -> Option<u64> {
@@ -143,32 +149,40 @@ pub fn add_internal(key: &str, increase: i64) -> Result<i64, &'static str> {
 
 pub fn increment(key: &str) -> Result<i64, &'static str> {
     let result = add_internal(key, 1);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_increment(&key);
+    if result.is_ok() {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_increment(&key);
+        }
     }
     result
 }
 
 pub fn decrement(key: &str) -> Result<i64, &'static str> {
     let result = add_internal(key, -1);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_decrement(&key);
+    if result.is_ok() {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_decrement(&key);
+        }
     }
     result
 }
 
 pub fn add(key: &str, num: i64) -> Result<i64, &'static str> {
     let result = add_internal(key, num);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_add(&key, num);
+    if result.is_ok() {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_add(&key, num);
+        }
     }
     result
 }
 
 pub fn subtract(key: &str, num: i64) -> Result<i64, &'static str> {
     let result = add_internal(key, -num);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_subtract(&key, num);
+    if result.is_ok() {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_subtract(&key, num);
+        }
     }
     result
 }
@@ -186,13 +200,19 @@ pub fn rename_internal(from: &str, to: &str) -> bool {
 
 pub fn rename(from: &str, to: &str) -> bool {
     let value = rename_internal(from, to);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_rename(from, to);
+    if value {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_rename(from, to);
+        }
     }
     value
 }
 
 // LIST functions
+
+pub fn list_exists(key: &str) -> bool {
+    get_list_storage().lock().unwrap().contains_key(key)
+}
 
 pub fn push_right_internal(key: &str, value: &str) {
     let mut lists = get_list_storage().lock().unwrap();
@@ -235,8 +255,10 @@ pub fn pop_right_internal(key: &str) -> Option<String> {
 
 pub fn pop_right(key: &str) -> Option<String> {
     let value = pop_right_internal(key);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_popr(key);
+    if value.is_some() {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_popr(key);
+        }
     }
     value
 }
@@ -256,8 +278,10 @@ pub fn pop_left_internal(key: &str) -> Option<String> {
 
 pub fn pop_left(key: &str) -> Option<String> {
     let value = pop_left_internal(key);
-    if let Some(journal) = journal::JOURNAL.get() {
-        journal.lock().unwrap().log_popl(key);
+    if value.is_some() {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_popl(key);
+        }
     }
     value
 }

@@ -58,6 +58,7 @@ nc 127.0.0.1 6379
 | `LLEN <list>`                | Gets the number of items in the list          |
 | `LS`                         | List all keys currently in storage            |
 | `LIST`                       | List all keys currently in storage            |
+| `KEYS`                       | List all keys currently in storage            |
 | `PING`                       | Health check, returns `PONG`                  |
 | `CLEAR`                      | Remove all keys from storage                  |
 | `QUIT`                       | Close the connection                          |

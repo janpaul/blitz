@@ -45,15 +45,21 @@ fn handle_exists<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 }
 
-fn handle_list<W: Write>(writer: &mut W, parts: &[&str]) {
+fn handle_keys<W: Write>(writer: &mut W, parts: &[&str]) {
     if parts.len() != 1 {
         write_response(writer, NOK);
+        return;
     }
     let keys = storage::get_keys();
     if keys.is_empty() {
         write_response(writer, NIL);
     } else {
-        let response = keys.join("\n") + "\r\n";
+        let response = keys
+            .iter()
+            .map(|(key, kind)| format!("{} [{}]", key, kind))
+            .collect::<Vec<String>>()
+            .join("\n")
+            + "\r\n";
         write_response(writer, &response);
     }
 }
@@ -89,6 +95,7 @@ fn handle_rename<W: Write>(writer: &mut W, parts: &[&str]) {
 fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
     if parts.len() != 2 {
         write_response(writer, NOK);
+        return;
     }
 
     if storage::exists(parts[1]) {
@@ -98,6 +105,8 @@ fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
         } else {
             write_response(writer, "string\r\n");
         }
+    } else if storage::list_exists(parts[1]) {
+        write_response(writer, "list\r\n");
     } else {
         write_response(writer, NIL);
     }
@@ -268,7 +277,7 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         // key/value functions
         "SET" => handle_set(writer, &parts),
         "GET" => handle_get(writer, &parts),
-        "LIST" | "LS" => handle_list(writer, &parts),
+        "LIST" | "LS" | "KEYS" => handle_keys(writer, &parts),
         "EXISTS" => handle_exists(writer, &parts),
         "RENAME" | "REN" | "MOVE" => handle_rename(writer, &parts),
         "TYPE" => handle_type(writer, &parts),
