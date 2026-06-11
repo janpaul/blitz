@@ -290,3 +290,31 @@ pub fn llen(key: &str) -> usize {
     let lists = get_list_storage().lock().unwrap();
     lists.get(key).map_or(0, |list| list.len())
 }
+
+pub fn lrange(key: &str, start: i64, stop: i64) -> Option<Vec<String>> {
+    let lists = get_list_storage().lock().unwrap();
+    let list = lists.get(key)?;
+    let len = list.len() as i64;
+
+    let start = if start < 0 {
+        (len + start).max(0)
+    } else {
+        start.min(len)
+    };
+    let stop = if stop < 0 {
+        (len + stop + 1).max(0)
+    } else {
+        (stop + 1).min(len)
+    };
+
+    if start >= stop {
+        return Some(vec![]);
+    }
+
+    Some(
+        list[start as usize..stop as usize]
+            .iter()
+            .cloned()
+            .collect(),
+    )
+}

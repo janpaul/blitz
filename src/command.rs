@@ -266,6 +266,41 @@ fn handle_llen<W: Write>(writer: &mut W, parts: &[&str]) {
     write_response(writer, &format!("{}\r\n", storage::llen(parts[1])));
 }
 
+fn handle_lrange<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 4 {
+        write_response(writer, NOK);
+        return;
+    }
+
+    let start = match parts[2].parse::<i64>() {
+        Ok(n) => n,
+        Err(_) => {
+            write_response(writer, NOK);
+            return;
+        }
+    };
+
+    let stop = match parts[3].parse::<i64>() {
+        Ok(n) => n,
+        Err(_) => {
+            write_response(writer, NOK);
+            return;
+        }
+    };
+
+    match storage::lrange(parts[1], start, stop) {
+        None => write_response(writer, NIL),
+        Some(values) => {
+            if values.is_empty() {
+                write_response(writer, NIL);
+            } else {
+                let response = values.join("\n") + "\r\n";
+                write_response(writer, &response);
+            }
+        }
+    }
+}
+
 pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     let parts: Vec<&str> = command.trim().split_whitespace().collect();
 
@@ -295,6 +330,7 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         "POPL" => handle_popl(writer, &parts),
         "POPR" => handle_popr(writer, &parts),
         "LLEN" => handle_llen(writer, &parts),
+        "LRANGE" => handle_lrange(writer, &parts),
         // common functions
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
@@ -339,6 +375,7 @@ fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "POPR <key>\r\n");
     write_response(writer, "POPL <key>\r\n");
     write_response(writer, "LLEN <key>\r\n");
+    write_response(writer, "LRANGE <key> <start> <stop>\r\n");
     write_response(writer, "PING\r\n");
     write_response(writer, "LS\r\n");
     write_response(writer, "LIST\r\n");

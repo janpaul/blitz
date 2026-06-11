@@ -33,37 +33,38 @@ nc 127.0.0.1 6379
 
 ## Commands
 
-| Command                      | Description                                   |
-|------------------------------|-----------------------------------------------|
-| `SET <key> <value>`          | Store a value under a key                     |
-| `GET <key>`                  | Retrieve the value for a key                  |
-| `DEL <key>`                  | Delete a key and return its value             |
-| `EXISTS <key>`               | Returns `1` if a key exists, otherwise `0`    |
-| `TYPE <key>`                 | Returns the type of the key (string,number)   |
-| `REN <old> <new>`            | Renames key `old` to `new`                    |
-| `MOVE <old> <new>`           | Renames key `old` to `new`                    |
-| `RENAME <old> <new>`         | Renames key `old` to `new`                    |
-| `INCR <key>`                 | Increments the value of the key               |
-| `DECR <key>`                 | Decrements the value of the key               |
-| `ADD <key> <number>`         | Adds `number` to the value of the key         |
-| `SUB <key>`                  | Substracts `number` from the value of the key |
-| `EXP,EXPIRE <key> <seconds>` | The `key` expires in `seconds`                |
-| `TTL <key>`                  | Gets the expiration of the key, in seconds    |
-| `MGET <k1> <kn>`             | Get the values of the specified keys          |
-| `MSET <k1> <v1> <kn> <vn>`   | Set the values of the specified keys          |
-| `RENAME <old> <new>`         | Renames key `old` to `new`                    |
-| `PUSHR <list> <value>`       | Push `value` to the right side of the `list`  |
-| `PUSHL <list> <value>`       | Push `value` to the left side of the `list`   |
-| `POPR <list>`                | Gets the value of the right side of the list  |
-| `POPL <list>`                | Gets the value of the left side of the list   |
-| `LLEN <list>`                | Gets the number of items in the list          |
-| `LS`                         | List all keys currently in storage            |
-| `LIST`                       | List all keys currently in storage            |
-| `KEYS`                       | List all keys currently in storage            |
-| `PING`                       | Health check, returns `PONG`                  |
-| `CLEAR`                      | Remove all keys from storage                  |
-| `QUIT`                       | Close the connection                          |
-| `BYE`                        | Close the connection                          |
+| Command                        | Description                                   |
+|--------------------------------|-----------------------------------------------|
+| `SET <key> <value>`            | Store a value under a key                     |
+| `GET <key>`                    | Retrieve the value for a key                  |
+| `DEL <key>`                    | Delete a key and return its value             |
+| `EXISTS <key>`                 | Returns `1` if a key exists, otherwise `0`    |
+| `TYPE <key>`                   | Returns the type of the key (string,number)   |
+| `REN <old> <new>`              | Renames key `old` to `new`                    |
+| `MOVE <old> <new>`             | Renames key `old` to `new`                    |
+| `RENAME <old> <new>`           | Renames key `old` to `new`                    |
+| `INCR <key>`                   | Increments the value of the key               |
+| `DECR <key>`                   | Decrements the value of the key               |
+| `ADD <key> <number>`           | Adds `number` to the value of the key         |
+| `SUB <key>`                    | Substracts `number` from the value of the key |
+| `EXP,EXPIRE <key> <seconds>`   | The `key` expires in `seconds`                |
+| `TTL <key>`                    | Gets the expiration of the key, in seconds    |
+| `MGET <k1> <kn>`               | Get the values of the specified keys          |
+| `MSET <k1> <v1> <kn> <vn>`     | Set the values of the specified keys          |
+| `RENAME <old> <new>`           | Renames key `old` to `new`                    |
+| `PUSHR <list> <value>`         | Push `value` to the right side of the `list`  |
+| `PUSHL <list> <value>`         | Push `value` to the left side of the `list`   |
+| `POPR <list>`                  | Gets the value of the right side of the list  |
+| `POPL <list>`                  | Gets the value of the left side of the list   |
+| `LLEN <list>`                  | Gets the number of items in the list          |
+| `LRANGE <list> <start> <stop>` | Gets the items in the list in specified range |
+| `LS`                           | List all keys currently in storage            |
+| `LIST`                         | List all keys currently in storage            |
+| `KEYS`                         | List all keys currently in storage            |
+| `PING`                         | Health check, returns `PONG`                  |
+| `CLEAR`                        | Remove all keys from storage                  |
+| `QUIT`                         | Close the connection                          |
+| `BYE`                          | Close the connection                          |
 
 ### Examples
 
