@@ -62,6 +62,14 @@ nc 127.0.0.1 6379
 
 ### Examples
 
+Connect to a running Blitz instance by using (for example) `nc`:
+
+```bash
+nc localhost 6379
+````
+
+Then you can issue commands like:
+
 ```
 SET player1.pos 10,20
 +OK
