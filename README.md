@@ -1,7 +1,7 @@
 # Blitz
 
 A fast, lightweight in-memory key-value store built in Rust. Inspired by Redis, but not a clone — Blitz is designed for
-ultra-low-latency use cases like game state on a LAN, with both TCP and UDP support (UDP coming soon).
+ultra-low-latency use cases like game state on a LAN, with both TCP and UDP support.
 
 ## Features
 
@@ -99,7 +99,9 @@ QUIT
 ## UDP Datagram Protocol
 
 Blitz exposes a binary UDP interface on port 6380, designed for ultra-low-latency use cases like game state on a LAN.
-Unlike the TCP interface, there is no connection overhead — just fire a packet and get a response.
+Unlike the TCP interface, there is no connection overhead — just fire a packet and get a response. This comes with some
+limitations: no pipelining, no transactions, and a much simpler command set (only GET and SET). Also, there is a hard
+limit to the length of the key and value (255 bytes each) to fit within a single UDP datagram.
 
 ### Packet Format
 
