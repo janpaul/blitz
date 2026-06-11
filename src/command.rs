@@ -370,11 +370,11 @@ fn handle_help<W: Write>(writer: &mut W) {
         writer,
         "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n",
     );
-    write_response(writer, "PUSHR <key> <value>\r\n");
-    write_response(writer, "PUSHL <key> <value>\r\n");
-    write_response(writer, "POPR <key>\r\n");
-    write_response(writer, "POPL <key>\r\n");
-    write_response(writer, "LLEN <key>\r\n");
+    write_response(writer, "PUSHR <list> <value>\r\n");
+    write_response(writer, "PUSHL <list> <value>\r\n");
+    write_response(writer, "POPR <list>\r\n");
+    write_response(writer, "POPL <list>\r\n");
+    write_response(writer, "LLEN <list>\r\n");
     write_response(writer, "LRANGE <key> <start> <stop>\r\n");
     write_response(writer, "PING\r\n");
     write_response(writer, "LS\r\n");
