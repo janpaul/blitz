@@ -91,6 +91,16 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
+    pub fn log_sadd(&mut self, key: &str, member: &str) {
+        writeln!(self.writer, "{} SADD {} {}", get_timestamp(), key, member,).unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_srem(&mut self, key: &str, member: &str) {
+        writeln!(self.writer, "{} SREM {} {}", get_timestamp(), key, member,).unwrap();
+        self.writer.flush().unwrap();
+    }
+
     pub fn clear_journal(&mut self) {
         self.writer.get_mut().set_len(0).unwrap();
         self.writer.get_mut().seek(SeekFrom::Start(0)).unwrap();
@@ -181,6 +191,12 @@ fn replay_journal(path: &str) {
             }
             "POPL" if parts.len() == 3 => {
                 let _ = storage::pop_left_internal(parts[2]);
+            }
+            "SADD" if parts.len() == 4 => {
+                let _ = storage::set_add_internal(parts[2], parts[3]);
+            }
+            "SREM" if parts.len() == 3 => {
+                let _ = storage::set_remove_internal(parts[2], parts[3]);
             }
             _ => {}
         }

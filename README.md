@@ -11,7 +11,7 @@ ultra-low-latency use cases like game state on a LAN, with both TCP and UDP supp
 - UDP support
 - Key expiration
 - Lists (`PUSHR`, `POPR`, ...)
-- sets *(planned)*
+- sets (`SADD`, `SREM`, ...)
 
 ## Getting Started
 
@@ -55,6 +55,14 @@ nc 127.0.0.1 6379
 | `POPL <list>`                       | Gets the value of the left side of the list      |
 | `LLEN <list>`                       | Gets the number of items in the list             |
 | `LRANGE <list> <start> <stop>`      | Gets the items in the list in specified range    |
+| `SADD <set> <member>`               | Adds `member` to the set named `set`             |
+| `SREM <set> <member>`               | Removes `member` from the set named `set`        |
+| `SMEMBERS <set>`                    | List all members of the set named `set`          |
+| `SISMEMBER <set> <member>`          | Test if `member` is part of `set`                |
+| `SCARD <set>`                       | Returns the number of items inside set `set`     |
+| `SUNION <set1> <set2>`              | Shows the union between `set` and `set2`         |
+| `SINTER <set1> <set2>`              | Shows the intersection between `set` and `set2`  |
+| `SDIFF <set1> <set2>`               | Shows the difference between `set` and `set2`    |
 | `LIST`, `LS`, `KEYS`                | List all keys currently in storage               |
 | `PING`                              | Health check, returns `PONG`                     |
 | `CLEAR`                             | Remove all keys from storage                     |

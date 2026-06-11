@@ -301,6 +301,77 @@ fn handle_lrange<W: Write>(writer: &mut W, parts: &[&str]) {
     }
 }
 
+fn handle_sadd<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    let value = parts[2..].join(" ");
+    if storage::set_add(parts[1], &value) {
+        write_response(writer, OK);
+    } else {
+        write_response(writer, NOK);
+    }
+}
+
+fn handle_srem<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    if storage::set_remove(parts[1], parts[2]) {
+        write_response(writer, OK);
+    } else {
+        write_response(writer, NIL);
+    }
+}
+fn handle_sismember<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    if storage::set_is_member(parts[1], parts[2]) {
+        write_response(writer, "1\r\n");
+    } else {
+        write_response(writer, "0\r\n");
+    }
+}
+fn handle_smembers<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    match storage::set_members(parts[1]) {
+        Some(members) => write_response(writer, &format!("{}\r\n", members.join("\n"))),
+        None => write_response(writer, NIL),
+    }
+}
+fn handle_scard<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    write_response(writer, &format!("{}\r\n", storage::set_card(parts[1])));
+}
+
+fn handle_set_operation<W: Write>(
+    writer: &mut W,
+    parts: &[&str],
+    op: fn(&str, &str) -> Vec<String>,
+) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    let members = op(parts[1], parts[2]);
+    if members.is_empty() {
+        write_response(writer, NIL);
+    } else {
+        let response = members.join("\n") + "\r\n";
+        write_response(writer, &response);
+    }
+}
+
 pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     let parts: Vec<&str> = command.trim().split_whitespace().collect();
 
@@ -331,6 +402,15 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         "POPR" => handle_popr(writer, &parts),
         "LLEN" => handle_llen(writer, &parts),
         "LRANGE" => handle_lrange(writer, &parts),
+        // set functions
+        "SADD" => handle_sadd(writer, &parts),
+        "SREM" => handle_srem(writer, &parts),
+        "SISMEMBER" => handle_sismember(writer, &parts),
+        "SMEMBERS" => handle_smembers(writer, &parts),
+        "SCARD" => handle_scard(writer, &parts),
+        "SUNION" => handle_set_operation(writer, &parts, storage::set_union),
+        "SINTER" => handle_set_operation(writer, &parts, storage::set_intersection),
+        "SDIFF" => handle_set_operation(writer, &parts, storage::set_difference),
         // common functions
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
@@ -370,12 +450,20 @@ fn handle_help<W: Write>(writer: &mut W) {
         writer,
         "MSET <key1> <value1> <key2> <value2>... <keyn> <valuen>\r\n",
     );
-    write_response(writer, "PUSHR <list> <value>\r\n");
-    write_response(writer, "PUSHL <list> <value>\r\n");
-    write_response(writer, "POPR <list>\r\n");
-    write_response(writer, "POPL <list>\r\n");
-    write_response(writer, "LLEN <list>\r\n");
+    write_response(writer, "PUSHR <key> <value>\r\n");
+    write_response(writer, "PUSHL <key> <value>\r\n");
+    write_response(writer, "POPR <key>\r\n");
+    write_response(writer, "POPL <key>\r\n");
+    write_response(writer, "LLEN <key>\r\n");
     write_response(writer, "LRANGE <key> <start> <stop>\r\n");
+    write_response(writer, "SADD <key> <member>\r\n");
+    write_response(writer, "SREM <key> <member>\r\n");
+    write_response(writer, "SMEMBERS <key>\r\n");
+    write_response(writer, "SISMEMBER <key> <member>\r\n");
+    write_response(writer, "SCARD <key>\r\n");
+    write_response(writer, "SUNION <key1> <key2>\r\n");
+    write_response(writer, "SINTER <key1> <key2>\r\n");
+    write_response(writer, "SDIFF <key1> <key2>\r\n");
     write_response(writer, "PING\r\n");
     write_response(writer, "LS\r\n");
     write_response(writer, "LIST\r\n");

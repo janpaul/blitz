@@ -1,6 +1,6 @@
 use crate::{helpers, journal, storage};
 use helpers::get_timestamp;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex, OnceLock};
 
 struct Entry {
@@ -15,8 +15,10 @@ impl Entry {
 }
 type ValueStorage = Arc<Mutex<HashMap<String, Entry>>>;
 type ListStorage = Arc<Mutex<HashMap<String, Vec<String>>>>;
+type SetStorage = Arc<Mutex<HashMap<String, HashSet<String>>>>;
 static VALUE_STORAGE: OnceLock<ValueStorage> = OnceLock::new();
 static LIST_STORAGE: OnceLock<ListStorage> = OnceLock::new();
+static SET_STORAGE: OnceLock<SetStorage> = OnceLock::new();
 
 fn get_value_storage() -> &'static ValueStorage {
     VALUE_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
@@ -26,13 +28,19 @@ fn get_list_storage() -> &'static ListStorage {
     LIST_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
 }
 
+fn get_set_storage() -> &'static SetStorage {
+    SET_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
+}
+
 pub fn get_keys() -> Vec<(String, &'static str)> {
     let value_map = get_value_storage().lock().unwrap();
     let list_map = get_list_storage().lock().unwrap();
+    let set_map = get_set_storage().lock().unwrap();
     value_map
         .keys()
         .map(|k| (k.clone(), "string"))
         .chain(list_map.keys().map(|k| (k.clone(), "list")))
+        .chain(set_map.keys().map(|k| (k.clone(), "set")))
         .collect()
 }
 
@@ -103,8 +111,10 @@ pub fn get(key: &str) -> Option<String> {
 }
 
 pub fn exists(key: &str) -> bool {
-    let map = get_value_storage().lock().unwrap();
-    map.contains_key(key)
+    let value_map = get_value_storage().lock().unwrap();
+    let list_map = get_list_storage().lock().unwrap();
+    let set_map = get_set_storage().lock().unwrap();
+    value_map.contains_key(key) || list_map.contains_key(key) || set_map.contains_key(key)
 }
 
 pub fn remove_internal(key: &str) -> Option<String> {
@@ -119,6 +129,7 @@ pub fn remove(key: &str) -> Option<String> {
     value
 }
 
+// MSET does not support multi-word values
 pub fn mset(parts: &[&str]) {
     for pair in parts[1..].chunks(2) {
         storage::set_internal(pair[0], pair[1]);
@@ -317,4 +328,86 @@ pub fn lrange(key: &str, start: i64, stop: i64) -> Option<Vec<String>> {
             .cloned()
             .collect(),
     )
+}
+
+// Set functions
+
+pub fn set_add_internal(key: &str, member: &str) -> bool {
+    let mut sets = get_set_storage().lock().unwrap();
+    sets.entry(key.to_string())
+        .or_insert_with(HashSet::new)
+        .insert(member.to_string())
+}
+
+pub fn set_add(key: &str, member: &str) -> bool {
+    let result = set_add_internal(key, member);
+    if result {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_sadd(key, member);
+        }
+    }
+    result
+}
+
+pub fn set_members(key: &str) -> Option<Vec<String>> {
+    let sets = get_set_storage().lock().unwrap();
+    let set = sets.get(key)?;
+    Some(set.iter().cloned().collect())
+}
+
+pub fn set_remove_internal(key: &str, member: &str) -> bool {
+    let mut sets = get_set_storage().lock().unwrap();
+    match sets.get_mut(key) {
+        None => false,
+        Some(set) => {
+            let removed = set.remove(member);
+            if set.is_empty() {
+                sets.remove(key);
+            }
+            removed
+        }
+    }
+}
+
+pub fn set_remove(key: &str, member: &str) -> bool {
+    let result = set_remove_internal(key, member);
+    if result {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_srem(key, member);
+        }
+    }
+    result
+}
+
+pub fn set_is_member(key: &str, member: &str) -> bool {
+    let sets = get_set_storage().lock().unwrap();
+    sets.get(key).map_or(false, |set| set.contains(member))
+}
+
+pub fn set_card(key: &str) -> usize {
+    let sets = get_set_storage().lock().unwrap();
+    sets.get(key).map_or(0, |set| set.len())
+}
+
+pub fn set_union(key1: &str, key2: &str) -> Vec<String> {
+    let sets = get_set_storage().lock().unwrap();
+    let empty = HashSet::new();
+    let set1 = sets.get(key1).unwrap_or(&empty);
+    let set2 = sets.get(key2).unwrap_or(&empty);
+    set1.union(set2).cloned().collect()
+}
+
+pub fn set_intersection(key1: &str, key2: &str) -> Vec<String> {
+    let sets = get_set_storage().lock().unwrap();
+    let empty = HashSet::new();
+    let set1 = sets.get(key1).unwrap_or(&empty);
+    let set2 = sets.get(key2).unwrap_or(&empty);
+    set1.intersection(set2).cloned().collect()
+}
+pub fn set_difference(key1: &str, key2: &str) -> Vec<String> {
+    let sets = get_set_storage().lock().unwrap();
+    let empty = HashSet::new();
+    let set1 = sets.get(key1).unwrap_or(&empty);
+    let set2 = sets.get(key2).unwrap_or(&empty);
+    set1.difference(set2).cloned().collect()
 }
