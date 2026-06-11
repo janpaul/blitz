@@ -16,9 +16,11 @@ impl Entry {
 type ValueStorage = Arc<Mutex<HashMap<String, Entry>>>;
 type ListStorage = Arc<Mutex<HashMap<String, Vec<String>>>>;
 type SetStorage = Arc<Mutex<HashMap<String, HashSet<String>>>>;
+type HashStorage = Arc<Mutex<HashMap<String, HashMap<String, String>>>>;
 static VALUE_STORAGE: OnceLock<ValueStorage> = OnceLock::new();
 static LIST_STORAGE: OnceLock<ListStorage> = OnceLock::new();
 static SET_STORAGE: OnceLock<SetStorage> = OnceLock::new();
+static HASH_STORAGE: OnceLock<HashStorage> = OnceLock::new();
 
 fn get_value_storage() -> &'static ValueStorage {
     VALUE_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
@@ -32,15 +34,21 @@ fn get_set_storage() -> &'static SetStorage {
     SET_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
 }
 
+fn get_hash_storage() -> &'static HashStorage {
+    HASH_STORAGE.get_or_init(|| Arc::new(Mutex::new(HashMap::new())))
+}
+
 pub fn get_keys() -> Vec<(String, &'static str)> {
     let value_map = get_value_storage().lock().unwrap();
     let list_map = get_list_storage().lock().unwrap();
     let set_map = get_set_storage().lock().unwrap();
+    let hash_map = get_hash_storage().lock().unwrap();
     value_map
         .keys()
         .map(|k| (k.clone(), "string"))
         .chain(list_map.keys().map(|k| (k.clone(), "list")))
         .chain(set_map.keys().map(|k| (k.clone(), "set")))
+        .chain(hash_map.keys().map(|k| (k.clone(), "hash")))
         .collect()
 }
 
@@ -332,6 +340,10 @@ pub fn lrange(key: &str, start: i64, stop: i64) -> Option<Vec<String>> {
 
 // Set functions
 
+pub fn set_exists(key: &str) -> bool {
+    get_set_storage().lock().unwrap().contains_key(key)
+}
+
 pub fn set_add_internal(key: &str, member: &str) -> bool {
     let mut sets = get_set_storage().lock().unwrap();
     sets.entry(key.to_string())
@@ -410,4 +422,77 @@ pub fn set_difference(key1: &str, key2: &str) -> Vec<String> {
     let set1 = sets.get(key1).unwrap_or(&empty);
     let set2 = sets.get(key2).unwrap_or(&empty);
     set1.difference(set2).cloned().collect()
+}
+
+// hash functions
+pub fn hash_set_internal(key: &str, field: &str, value: &str) {
+    let mut hashes = get_hash_storage().lock().unwrap();
+    hashes
+        .entry(key.to_string())
+        .or_insert_with(HashMap::new)
+        .insert(field.to_string(), value.to_string());
+}
+
+pub fn hash_set(key: &str, field: &str, value: &str) {
+    hash_set_internal(key, field, value);
+    if let Some(journal) = journal::JOURNAL.get() {
+        journal.lock().unwrap().log_hset(key, field, value);
+    }
+}
+
+pub fn hash_get(key: &str, field: &str) -> Option<String> {
+    let hashes = get_hash_storage().lock().unwrap();
+    hashes.get(key)?.get(field).cloned()
+}
+
+pub fn hash_get_all(key: &str) -> Option<Vec<(String, String)>> {
+    let hashes = get_hash_storage().lock().unwrap();
+    let hash = hashes.get(key)?;
+    Some(hash.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+}
+
+pub fn hash_delete_internal(key: &str, field: &str) -> bool {
+    let mut hashes = get_hash_storage().lock().unwrap();
+    match hashes.get_mut(key) {
+        None => false,
+        Some(hash) => {
+            let removed = hash.remove(field).is_some();
+            if hash.is_empty() {
+                hashes.remove(key);
+            }
+            removed
+        }
+    }
+}
+
+pub fn hash_delete(key: &str, field: &str) -> bool {
+    let result = hash_delete_internal(key, field);
+    if result {
+        if let Some(journal) = journal::JOURNAL.get() {
+            journal.lock().unwrap().log_hdel(key, field);
+        }
+    }
+    result
+}
+
+pub fn hash_exists(key: &str, field: &str) -> bool {
+    let hashes = get_hash_storage().lock().unwrap();
+    hashes
+        .get(key)
+        .map_or(false, |hash| hash.contains_key(field))
+}
+
+pub fn hash_keys(key: &str) -> Option<Vec<String>> {
+    let hashes = get_hash_storage().lock().unwrap();
+    Some(hashes.get(key)?.keys().cloned().collect())
+}
+
+pub fn hash_vals(key: &str) -> Option<Vec<String>> {
+    let hashes = get_hash_storage().lock().unwrap();
+    Some(hashes.get(key)?.values().cloned().collect())
+}
+
+pub fn hash_len(key: &str) -> usize {
+    let hashes = get_hash_storage().lock().unwrap();
+    hashes.get(key).map_or(0, |hash| hash.len())
 }

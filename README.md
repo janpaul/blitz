@@ -63,6 +63,14 @@ nc 127.0.0.1 6379
 | `SUNION <set1> <set2>`              | Shows the union between `set` and `set2`         |
 | `SINTER <set1> <set2>`              | Shows the intersection between `set` and `set2`  |
 | `SDIFF <set1> <set2>`               | Shows the difference between `set` and `set2`    |
+| `HSET <hash> <field> <value>`       | Adds `field` with `value` to hash `hash`         |
+| `HGET <hash> <field>`               | Gets the value of `field` inside hash `hash`     |
+| `HREM <hash> <field>`               | Removes the `field` of hash `hash`               |
+| `HGETALL <hash>`                    | Lists all key/value pairs of hash `hash`         |
+| `HEXISTS <hash> <field>`            | Tests if `field` exists in `hash`                |
+| `HKEYS <hash>`                      | Gets the keys inside hash `hash`                 |
+| `HVALS <hash>`                      | Gets the values inside hash `hash`               |
+| `HLEN <hash>`                       | Gets the number of items inside hash `hash`      |
 | `LIST`, `LS`, `KEYS`                | List all keys currently in storage               |
 | `PING`                              | Health check, returns `PONG`                     |
 | `CLEAR`                             | Remove all keys from storage                     |

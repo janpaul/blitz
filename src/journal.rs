@@ -101,6 +101,24 @@ impl Journal {
         self.writer.flush().unwrap();
     }
 
+    pub fn log_hset(&mut self, key: &str, field: &str, value: &str) {
+        writeln!(
+            self.writer,
+            "{} HSET {} {} {}",
+            get_timestamp(),
+            key,
+            field,
+            value
+        )
+        .unwrap();
+        self.writer.flush().unwrap();
+    }
+
+    pub fn log_hdel(&mut self, key: &str, field: &str) {
+        writeln!(self.writer, "{} HDEL {} {}", get_timestamp(), key, field,).unwrap();
+        self.writer.flush().unwrap();
+    }
+
     pub fn clear_journal(&mut self) {
         self.writer.get_mut().set_len(0).unwrap();
         self.writer.get_mut().seek(SeekFrom::Start(0)).unwrap();
@@ -197,6 +215,17 @@ fn replay_journal(path: &str) {
             }
             "SREM" if parts.len() == 3 => {
                 let _ = storage::set_remove_internal(parts[2], parts[3]);
+            }
+            "HSET" if parts.len() >= 4 => {
+                let all: Vec<&str> = line.split(' ').collect();
+                // all = [timestamp, "HSET", key, field, value...]
+                if all.len() >= 5 {
+                    let value = all[4..].join(" "); // multi-word value support
+                    storage::hash_set_internal(all[2], all[3], &value);
+                }
+            }
+            "HDEL" if parts.len() == 4 => {
+                let _ = storage::hash_delete_internal(parts[2], parts[3]);
             }
             _ => {}
         }

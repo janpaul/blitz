@@ -107,6 +107,8 @@ fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
         }
     } else if storage::list_exists(parts[1]) {
         write_response(writer, "list\r\n");
+    } else if storage::set_exists(parts[1]) {
+        write_response(writer, "set\r\n");
     } else {
         write_response(writer, NIL);
     }
@@ -371,7 +373,94 @@ fn handle_set_operation<W: Write>(
         write_response(writer, &response);
     }
 }
+fn handle_hset<W: Write>(writer: &mut W, parts: &[&str]) {
+    let value = parts[3..].join(" ");
+    storage::hash_set(parts[1], parts[2], &value);
+    write_response(writer, OK);
+}
 
+fn handle_hget<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    storage::hash_get(parts[1], parts[2])
+        .map(|value| write_response(writer, &format!("{}\r\n", value)))
+        .unwrap_or_else(|| write_response(writer, NIL));
+}
+
+fn handle_hgetall<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    match storage::hash_get_all(parts[1]) {
+        None => write_response(writer, NIL),
+        Some(fields) => {
+            let response = fields
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k, v))
+                .collect::<Vec<String>>()
+                .join("\n")
+                + "\r\n";
+            write_response(writer, &response);
+        }
+    }
+}
+
+fn handle_hdel<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    if storage::hash_delete(parts[1], parts[2]) {
+        write_response(writer, OK);
+    } else {
+        write_response(writer, NIL);
+    }
+}
+
+fn handle_hexists<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 3 {
+        write_response(writer, NOK);
+        return;
+    }
+    if storage::hash_exists(parts[1], parts[2]) {
+        write_response(writer, "1\r\n");
+    } else {
+        write_response(writer, "0\r\n");
+    }
+}
+
+fn handle_hkeys<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    match storage::hash_keys(parts[1]) {
+        None => write_response(writer, NIL),
+        Some(keys) => write_response(writer, &(keys.join("\n") + "\r\n")),
+    }
+}
+
+fn handle_hvals<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    match storage::hash_vals(parts[1]) {
+        None => write_response(writer, NIL),
+        Some(vals) => write_response(writer, &(vals.join("\n") + "\r\n")),
+    }
+}
+
+fn handle_hlen<W: Write>(writer: &mut W, parts: &[&str]) {
+    if parts.len() != 2 {
+        write_response(writer, NOK);
+        return;
+    }
+    write_response(writer, &format!("{}\r\n", storage::hash_len(parts[1])));
+}
 pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     let parts: Vec<&str> = command.trim().split_whitespace().collect();
 
@@ -411,6 +500,15 @@ pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
         "SUNION" => handle_set_operation(writer, &parts, storage::set_union),
         "SINTER" => handle_set_operation(writer, &parts, storage::set_intersection),
         "SDIFF" => handle_set_operation(writer, &parts, storage::set_difference),
+        // hash functions
+        "HSET" => handle_hset(writer, &parts),
+        "HGET" => handle_hget(writer, &parts),
+        "HDEL" => handle_hdel(writer, &parts),
+        "HGETALL" => handle_hgetall(writer, &parts),
+        "HEXISTS" => handle_hexists(writer, &parts),
+        "HKEYS" => handle_hkeys(writer, &parts),
+        "HVALS" => handle_hvals(writer, &parts),
+        "HLEN" => handle_hlen(writer, &parts),
         // common functions
         "CLEAR" => handle_clear(writer),
         "DEL" => handle_delete(writer, &parts),
@@ -464,6 +562,14 @@ fn handle_help<W: Write>(writer: &mut W) {
     write_response(writer, "SUNION <key1> <key2>\r\n");
     write_response(writer, "SINTER <key1> <key2>\r\n");
     write_response(writer, "SDIFF <key1> <key2>\r\n");
+    write_response(writer, "HSET <key> <field> <value>\r\n");
+    write_response(writer, "HGET <key> <field>\r\n");
+    write_response(writer, "HDEL <key> <field>\r\n");
+    write_response(writer, "HGETALL <key> <field>\r\n");
+    write_response(writer, "HEXISTS <key> <field>\r\n");
+    write_response(writer, "HKEYS <key>\r\n");
+    write_response(writer, "HVALS <key>\r\n");
+    write_response(writer, "HLEN <key>\r\n");
     write_response(writer, "PING\r\n");
     write_response(writer, "LS\r\n");
     write_response(writer, "LIST\r\n");
