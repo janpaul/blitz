@@ -107,6 +107,13 @@ QUIT
 +BYE
 
 LRANGE player1.inventory 0 -1
+
+SADD fruits apple
+SADD fruits orange
+SADD fruits pear
+SADD shopping_cart apple
+SISMEMBER fruits apple
+SUNION fruits shopping_cart
 ```
 
 ## Responses

@@ -118,11 +118,19 @@ pub fn get(key: &str) -> Option<String> {
     }
 }
 
-pub fn exists(key: &str) -> bool {
+pub fn does_value_key_exist(key: &str) -> bool {
+    get_value_storage().lock().unwrap().contains_key(key)
+}
+
+pub fn key_exists(key: &str) -> bool {
     let value_map = get_value_storage().lock().unwrap();
     let list_map = get_list_storage().lock().unwrap();
     let set_map = get_set_storage().lock().unwrap();
-    value_map.contains_key(key) || list_map.contains_key(key) || set_map.contains_key(key)
+    let hash_map = get_hash_storage().lock().unwrap();
+    value_map.contains_key(key)
+        || list_map.contains_key(key)
+        || set_map.contains_key(key)
+        || hash_map.contains_key(key)
 }
 
 pub fn remove_internal(key: &str) -> Option<String> {
@@ -229,7 +237,7 @@ pub fn rename(from: &str, to: &str) -> bool {
 
 // LIST functions
 
-pub fn list_exists(key: &str) -> bool {
+pub fn does_list_exist(key: &str) -> bool {
     get_list_storage().lock().unwrap().contains_key(key)
 }
 
@@ -340,7 +348,7 @@ pub fn lrange(key: &str, start: i64, stop: i64) -> Option<Vec<String>> {
 
 // Set functions
 
-pub fn set_exists(key: &str) -> bool {
+pub fn does_set_exist(key: &str) -> bool {
     get_set_storage().lock().unwrap().contains_key(key)
 }
 
@@ -425,6 +433,11 @@ pub fn set_difference(key1: &str, key2: &str) -> Vec<String> {
 }
 
 // hash functions
+
+pub fn does_hash_exist(key: &str) -> bool {
+    get_hash_storage().lock().unwrap().contains_key(key)
+}
+
 pub fn hash_set_internal(key: &str, field: &str, value: &str) {
     let mut hashes = get_hash_storage().lock().unwrap();
     hashes
@@ -487,12 +500,12 @@ pub fn hash_keys(key: &str) -> Option<Vec<String>> {
     Some(hashes.get(key)?.keys().cloned().collect())
 }
 
-pub fn hash_vals(key: &str) -> Option<Vec<String>> {
+pub fn hash_values(key: &str) -> Option<Vec<String>> {
     let hashes = get_hash_storage().lock().unwrap();
     Some(hashes.get(key)?.values().cloned().collect())
 }
 
-pub fn hash_len(key: &str) -> usize {
+pub fn hash_length(key: &str) -> usize {
     let hashes = get_hash_storage().lock().unwrap();
     hashes.get(key).map_or(0, |hash| hash.len())
 }

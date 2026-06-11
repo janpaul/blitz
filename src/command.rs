@@ -38,7 +38,7 @@ fn handle_exists<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
         return;
     }
-    if storage::exists(parts[1]) {
+    if storage::key_exists(parts[1]) {
         write_response(writer, "1\r\n");
     } else {
         write_response(writer, "0\r\n");
@@ -98,17 +98,19 @@ fn handle_type<W: Write>(writer: &mut W, parts: &[&str]) {
         return;
     }
 
-    if storage::exists(parts[1]) {
+    if storage::does_value_key_exist(parts[1]) {
         let value = storage::get(parts[1]).unwrap();
         if value.parse::<i64>().is_ok() {
             write_response(writer, "number\r\n");
         } else {
             write_response(writer, "string\r\n");
         }
-    } else if storage::list_exists(parts[1]) {
+    } else if storage::does_list_exist(parts[1]) {
         write_response(writer, "list\r\n");
-    } else if storage::set_exists(parts[1]) {
+    } else if storage::does_set_exist(parts[1]) {
         write_response(writer, "set\r\n");
+    } else if storage::does_hash_exist(parts[1]) {
+        write_response(writer, "hash\r\n");
     } else {
         write_response(writer, NIL);
     }
@@ -448,7 +450,7 @@ fn handle_hvals<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
         return;
     }
-    match storage::hash_vals(parts[1]) {
+    match storage::hash_values(parts[1]) {
         None => write_response(writer, NIL),
         Some(vals) => write_response(writer, &(vals.join("\n") + "\r\n")),
     }
@@ -459,7 +461,7 @@ fn handle_hlen<W: Write>(writer: &mut W, parts: &[&str]) {
         write_response(writer, NOK);
         return;
     }
-    write_response(writer, &format!("{}\r\n", storage::hash_len(parts[1])));
+    write_response(writer, &format!("{}\r\n", storage::hash_length(parts[1])));
 }
 pub fn handle_command<W: Write>(writer: &mut W, command: &str) -> bool {
     let parts: Vec<&str> = command.trim().split_whitespace().collect();
