@@ -3,6 +3,7 @@ pub struct Config {
     pub port: u16,
     pub udp_port: u16,
     pub journal_path: String,
+    pub with_datagram: bool,
 }
 
 impl Config {
@@ -12,6 +13,7 @@ impl Config {
             journal_path: "blitz-journal.log".to_string(),
             port: 6379,
             udp_port: 6380,
+            with_datagram: true,
         }
     }
 

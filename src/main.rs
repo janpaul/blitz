@@ -46,9 +46,11 @@ fn main() {
     init_journal(&*config.journal_path);
     println!("Blitz listening on {}:{}", config.host, config.port);
 
-    std::thread::spawn(|| {
-        datagram::start_server();
-    });
+    if config.with_datagram {
+        std::thread::spawn(|| {
+            datagram::start_server();
+        });
+    }
 
     for stream in listener.incoming() {
         let stream = stream.unwrap();
