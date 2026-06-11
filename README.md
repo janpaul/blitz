@@ -8,9 +8,10 @@ ultra-low-latency use cases like game state on a LAN, with both TCP and UDP supp
 - In-memory key-value storage
 - TCP server with simple text-based protocol
 - Lightweight and fast — no external dependencies
-- UDP support *(planned)*
-- Key expiration *(planned)*
-- Lists and sets *(planned)*
+- UDP support
+- Key expiration
+- Lists (`PUSHR`, `POPR`, ...)
+- sets *(planned)*
 
 ## Getting Started
 
