@@ -16,7 +16,7 @@ ultra-low-latency use cases like game state on a LAN, with both TCP and UDP supp
 ## Getting Started
 
 ```bash
-git clone https://github.com/yourname/blitz
+git clone https://github.com/janpaul/blitz
 cd blitz
 cargo run
 ```
